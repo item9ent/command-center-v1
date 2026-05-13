@@ -83,10 +83,8 @@ export async function addMaterial(formData: FormData) {
     company_id: companyId,
     sku: formData.get('sku'),
     name: formData.get('name'),
-    category: formData.get('category'),
     unit_of_measure: formData.get('unit_of_measure'),
-    cost_per_unit: parseFloat(formData.get('cost_per_unit') as string) || 0,
-    minimum_stock_level: parseFloat(formData.get('minimum_stock_level') as string) || 0
+    reorder_point: parseFloat(formData.get('minimum_stock_level') as string) || 0
   });
   
   if (error) throw error;
@@ -101,8 +99,7 @@ export async function addProduct(formData: FormData) {
     company_id: companyId,
     sku: formData.get('sku'),
     name: formData.get('name'),
-    category: formData.get('category'),
-    base_price: parseFloat(formData.get('base_price') as string) || 0,
+    sale_price: parseFloat(formData.get('base_price') as string) || 0,
     status: 'Active'
   });
   
