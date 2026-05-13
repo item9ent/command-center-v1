@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check } from "lucide-react";
+import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check, Printer } from "lucide-react";
 import { createPurchaseOrder, receivePurchaseOrder } from '@/app/actions/inventory';
 
 export default function InventoryDashboard() {
@@ -145,6 +145,7 @@ export default function InventoryDashboard() {
                   <th className="px-4 py-3 font-medium">Product Name</th>
                   <th className="px-4 py-3 font-medium">On Hand</th>
                   <th className="px-4 py-3 font-medium">Price</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-color">
@@ -153,6 +154,17 @@ export default function InventoryDashboard() {
                     <td className="px-4 py-3 font-medium group-hover:text-accent-color transition-colors">{row.name}</td>
                     <td className="px-4 py-3 font-bold">{row.quantity_on_hand || 0} units</td>
                     <td className="px-4 py-3 font-medium">${Number(row.sale_price).toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right">
+                      <a 
+                        href={`/print/label/product/${row.id}`} 
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center justify-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-subtle hover:text-text-primary transition-colors"
+                        title="Print 4x2 Product Label"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </a>
+                    </td>
                   </tr>
                 ))}
               </tbody>
