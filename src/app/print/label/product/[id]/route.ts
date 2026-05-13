@@ -127,7 +127,7 @@ export async function GET(
     // 6. Serialize and Return
     const pdfBytes = await pdfDoc.save();
     
-    return new Response(pdfBytes, {
+    return new Response(Buffer.from(pdfBytes), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
