@@ -127,7 +127,7 @@ export async function GET(
     // 6. Serialize and Return
     const pdfBytes = await pdfDoc.save();
     
-    return new NextResponse(pdfBytes, {
+    return new Response(pdfBytes, {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -137,6 +137,6 @@ export async function GET(
 
   } catch (err: any) {
     console.error("Label Error:", err);
-    return new NextResponse(`Error generating label: ${err.message}`, { status: 500 });
+    return new Response(`Error generating label: ${err.message}`, { status: 500 });
   }
 }
