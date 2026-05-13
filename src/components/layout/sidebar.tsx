@@ -8,7 +8,8 @@ import {
   FileText, 
   CheckSquare, 
   AlertTriangle,
-  BarChart3
+  BarChart3,
+  Truck
 } from "lucide-react";
 
 export function Sidebar() {
@@ -18,6 +19,7 @@ export function Sidebar() {
     { name: "Sales & Customers", href: "/sales", icon: Users },
     { name: "Orders & Quotes", href: "/orders", icon: ShoppingCart },
     { name: "Inventory", href: "/inventory", icon: Package },
+    { name: "Fulfillment & Shipping", href: "/fulfillment", icon: Truck },
     { name: 'My Workstation', href: '/workstation', icon: LayoutDashboard },
     { name: 'Manufacturing', href: '/manufacturing', icon: Factory },
     { name: 'HR & Labor', href: '/hr', icon: Users },
