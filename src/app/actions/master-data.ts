@@ -4,20 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-async function getSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
+import { createClient } from '@/lib/supabase/server';
 
 // Ensure the user's company ID is automatically injected into new records
 async function getCompanyId(supabase: any) {
@@ -34,7 +21,7 @@ async function getCompanyId(supabase: any) {
 }
 
 export async function addCustomer(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const companyId = await getCompanyId(supabase);
   
   const { error } = await supabase.from('customers').insert({
@@ -55,7 +42,7 @@ export async function addCustomer(formData: FormData) {
 }
 
 export async function addVendor(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const companyId = await getCompanyId(supabase);
   
   const { error } = await supabase.from('vendors').insert({
@@ -76,23 +63,35 @@ export async function addVendor(formData: FormData) {
 }
 
 export async function addMaterial(formData: FormData) {
-  const supabase = await getSupabase();
-  const companyId = await getCompanyId(supabase);
-  
-  const { error } = await supabase.from('materials').insert({
-    company_id: companyId,
-    sku: formData.get('sku'),
-    name: formData.get('name'),
-    unit_of_measure: formData.get('unit_of_measure'),
-    reorder_point: parseFloat(formData.get('minimum_stock_level') as string) || 0
-  });
-  
-  if (error) throw error;
+  try {
+    const supabase = await createClient();
+    const companyId = await getCompanyId(supabase);
+    
+    if (!companyId) {
+      throw new Error("Missing Company ID for current user.");
+    }
+
+    const { error } = await supabase.from('materials').insert({
+      company_id: companyId,
+      sku: formData.get('sku') || null,
+      name: formData.get('name'),
+      unit_of_measure: formData.get('unit_of_measure'),
+      reorder_point: parseFloat(formData.get('minimum_stock_level') as string) || 0
+    });
+    
+    if (error) {
+      console.error("Database Insert Error:", error);
+      throw new Error(`Database Error: ${error.message} - Details: ${error.details || 'None'}`);
+    }
+  } catch (err: any) {
+    console.error("Server Action Error:", err);
+    throw new Error(err.message || "Failed to add material");
+  }
   revalidatePath('/settings');
 }
 
 export async function addProduct(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const companyId = await getCompanyId(supabase);
   
   const { error } = await supabase.from('products').insert({
@@ -108,7 +107,7 @@ export async function addProduct(formData: FormData) {
 }
 
 export async function addEmployee(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const companyId = await getCompanyId(supabase);
   
   const email = formData.get('email') as string;
