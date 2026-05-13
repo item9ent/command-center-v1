@@ -36,8 +36,9 @@ export async function GET(
       .eq('related_record_id', product.id)
       .limit(1);
 
-    const coaUrl = links && links.length > 0 && links[0].documents 
-      ? links[0].documents.file_url 
+    const docLink: any = links && links.length > 0 ? links[0] : null;
+    const coaUrl = docLink && docLink.documents 
+      ? docLink.documents.file_url 
       : "https://command-center-app-six.vercel.app/missing-coa"; // Fallback URL
 
     // 3. Generate QR Code image (PNG buffer)
