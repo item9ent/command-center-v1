@@ -34,8 +34,8 @@ export default function FulfillmentDashboard() {
     setLoading(true);
     const { data } = await supabase
       .from('sales_orders')
-      .select('*, customer:customers(name), line_items(*)')
-      .in('status', ['Approved', 'Pending Fulfillment', 'Paid'])
+      .select('*, customer:customers(name), line_items(*), shipping_records(*)')
+      .in('status', ['Approved', 'Pending Fulfillment', 'Paid', 'Shipped'])
       .order('created_at', { ascending: false });
       
     if (data) setOrders(data);
@@ -73,16 +73,15 @@ export default function FulfillmentDashboard() {
 
       setSuccessMsg(`Label Purchased! Tracking: ${res.trackingNumber || 'TEST'}`);
       
-      // Auto-open PDF if returned
+      // Auto-download PDF if returned
       if (res.labelData) {
-        // Convert base64 PDF to blob and open in new tab
-        const pdfWindow = window.open("");
-        if (pdfWindow) {
-          pdfWindow.document.write(
-            `<iframe width='100%' height='100%' src='data:application/pdf;base64,${res.labelData}'></iframe>`
-          );
-          pdfWindow.document.title = `Shipping Label - ${selectedOrder.order_number}`;
-        }
+        const linkSource = `data:application/pdf;base64,${res.labelData}`;
+        const downloadLink = document.createElement("a");
+        downloadLink.href = linkSource;
+        downloadLink.download = `Shipping_Label_${selectedOrder.order_number}.pdf`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
       }
 
       setShowModal(false);
@@ -173,17 +172,45 @@ export default function FulfillmentDashboard() {
                   <td className="px-4 py-3 text-subtle">{order.customer?.name || 'Unknown'}</td>
                   <td className="px-4 py-3 text-subtle">{totalItems} items</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Cleared
-                    </span>
+                    {order.status === 'Shipped' ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        Shipped
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        Cleared
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-right space-x-2">
-                    <button 
-                      onClick={() => openShippingModal(order)}
-                      className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-accent-color text-white hover:bg-accent-color/90 transition-colors text-xs font-medium"
-                    >
-                      Buy Postage & Print
-                    </button>
+                    {order.status === 'Shipped' ? (
+                      <button 
+                        onClick={() => {
+                          const record = order.shipping_records?.[0];
+                          if (record?.label_data) {
+                            const linkSource = `data:application/pdf;base64,${record.label_data}`;
+                            const downloadLink = document.createElement("a");
+                            downloadLink.href = linkSource;
+                            downloadLink.download = `Shipping_Label_${order.order_number}.pdf`;
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                          } else {
+                            alert("Label PDF not found for this order.");
+                          }
+                        }}
+                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-black/20 dark:bg-white/10 text-text-primary hover:bg-black/30 dark:hover:bg-white/20 transition-colors text-xs font-medium"
+                      >
+                        Reprint Label
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => openShippingModal(order)}
+                        className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-accent-color text-white hover:bg-accent-color/90 transition-colors text-xs font-medium"
+                      >
+                        Buy Postage & Print
+                      </button>
+                    )}
                   </td>
                 </tr>
               )})}
