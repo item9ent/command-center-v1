@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check, Printer } from "lucide-react";
+import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check, Printer, FileText, Upload, Download } from "lucide-react";
 import { createPurchaseOrder, receivePurchaseOrder } from '@/app/actions/inventory';
 
 export default function InventoryDashboard() {
@@ -17,6 +17,12 @@ export default function InventoryDashboard() {
   // Modal States
   const [showPOModal, setShowPOModal] = useState(false);
   const [showReceiveModal, setShowReceiveModal] = useState(false);
+  
+  // Item Details & COA Upload State
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [itemType, setItemType] = useState<'Product' | 'Material'>('Product');
+  const [itemDocs, setItemDocs] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -66,6 +72,78 @@ export default function InventoryDashboard() {
       alert(`Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const openItemDetails = async (item: any, type: 'Product' | 'Material') => {
+    setSelectedItem(item);
+    setItemType(type);
+    setItemDocs([]);
+    
+    // Fetch related documents
+    const { data: links } = await supabase
+      .from('document_links')
+      .select('documents(*)')
+      .eq('related_record_type', type)
+      .eq('related_record_id', item.id);
+      
+    if (links) {
+      setItemDocs(links.map((link: any) => link.documents));
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !selectedItem) return;
+    const file = e.target.files[0];
+    setIsUploading(true);
+
+    try {
+      // 1. Upload to Supabase Storage bucket 'coas'
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${selectedItem.id}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('coas')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Get Public URL
+      const { data: { publicUrl } } = supabase.storage.from('coas').getPublicUrl(filePath);
+
+      // 3. Create Document Record
+      const { data: docData, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          company_id: selectedItem.company_id,
+          document_name: file.name,
+          document_type: 'COA',
+          file_url: publicUrl,
+          status: 'Active'
+        })
+        .select()
+        .single();
+
+      if (docError) throw docError;
+
+      // 4. Create Document Link
+      await supabase.from('document_links').insert({
+        document_id: docData.id,
+        related_record_type: itemType,
+        related_record_id: selectedItem.id
+      });
+
+      // Refresh docs
+      setItemDocs(prev => [...prev, docData]);
+
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to upload document: " + err.message);
+    } finally {
+      setIsUploading(false);
+      // reset file input
+      e.target.value = '';
     }
   };
 
@@ -121,7 +199,11 @@ export default function InventoryDashboard() {
               </thead>
               <tbody className="divide-y divide-border-color">
                 {materials.map((row) => (
-                  <tr key={row.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                  <tr 
+                    key={row.id} 
+                    onClick={() => openItemDetails(row, 'Material')}
+                    className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                  >
                     <td className="px-4 py-3 font-medium group-hover:text-blue-500 transition-colors">{row.name}</td>
                     <td className="px-4 py-3 font-bold">{row.quantity_on_hand || 0} {row.unit_of_measure}</td>
                     <td className="px-4 py-3 text-subtle">{row.reorder_point || '-'}</td>
@@ -150,7 +232,11 @@ export default function InventoryDashboard() {
               </thead>
               <tbody className="divide-y divide-border-color">
                 {products.map((row) => (
-                  <tr key={row.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
+                  <tr 
+                    key={row.id} 
+                    onClick={() => openItemDetails(row, 'Product')}
+                    className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group"
+                  >
                     <td className="px-4 py-3 font-medium group-hover:text-accent-color transition-colors">{row.name}</td>
                     <td className="px-4 py-3 font-bold">{row.quantity_on_hand || 0} units</td>
                     <td className="px-4 py-3 font-medium">${Number(row.sale_price).toLocaleString()}</td>
@@ -159,6 +245,7 @@ export default function InventoryDashboard() {
                         href={`/print/label/product/${row.id}`} 
                         target="_blank"
                         rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="inline-flex items-center justify-center p-2 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-subtle hover:text-text-primary transition-colors"
                         title="Print 4x2 Product Label"
                       >
@@ -261,6 +348,95 @@ export default function InventoryDashboard() {
                 {isSubmitting ? 'Receiving...' : 'Mark as Received'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ITEM DETAILS & COA MODAL */}
+      {selectedItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-bg-secondary border border-border-color rounded-xl w-full max-w-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary">{selectedItem.name}</h2>
+                <p className="text-sm text-subtle">{itemType} | SKU: {selectedItem.sku || 'N/A'}</p>
+              </div>
+              <button onClick={() => setSelectedItem(null)} className="text-subtle hover:text-primary"><X className="w-6 h-6" /></button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-border-color">
+                <p className="text-sm text-subtle">Quantity on Hand</p>
+                <p className="text-xl font-bold">{selectedItem.quantity_on_hand || 0} {selectedItem.unit_of_measure}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-border-color">
+                <p className="text-sm text-subtle">Status</p>
+                <p className="text-xl font-bold">{selectedItem.status || 'Active'}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center border-b border-border-color pb-2">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-accent-color" />
+                  Documents & COAs
+                </h3>
+                <label className="btn btn-secondary border-border-color cursor-pointer flex items-center gap-2 text-sm px-3 py-1.5">
+                  <Upload className="w-4 h-4" />
+                  {isUploading ? 'Uploading...' : 'Upload COA'}
+                  <input 
+                    type="file" 
+                    accept=".pdf,image/*" 
+                    onChange={handleFileUpload} 
+                    className="hidden" 
+                    disabled={isUploading}
+                  />
+                </label>
+              </div>
+              
+              {itemDocs.length === 0 ? (
+                <p className="text-subtle text-sm italic text-center py-8 bg-black/5 dark:bg-white/5 rounded-lg border border-dashed border-border-color">
+                  No documents attached to this {itemType}.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {itemDocs.map(doc => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 rounded-lg border border-border-color bg-background">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-subtle" />
+                        <div>
+                          <p className="text-sm font-medium">{doc.document_name}</p>
+                          <p className="text-xs text-subtle">Type: {doc.document_type}</p>
+                        </div>
+                      </div>
+                      <a 
+                        href={doc.file_url} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-md text-subtle hover:text-accent-color transition-colors"
+                        title="View Document"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {itemType === 'Product' && (
+              <div className="mt-8 pt-6 border-t border-border-color">
+                <a 
+                  href={`/print/label/product/${selectedItem.id}`} 
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full btn btn-primary py-3 flex justify-center items-center gap-2"
+                >
+                  <Printer className="w-5 h-5" /> 
+                  Print 4x2 Product Label (with QR Code)
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}
