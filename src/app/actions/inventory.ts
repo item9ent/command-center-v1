@@ -89,47 +89,61 @@ export async function receivePurchaseOrder(formData: FormData) {
 }
 
 export async function updateItemQuantity(formData: FormData) {
-  const supabase = await createClient();
-  const { companyId } = await getAuthContext(supabase);
-  
-  const itemId = formData.get('item_id') as string;
-  const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
-  const newQty = parseFloat(formData.get('quantity') as string) || 0;
+  try {
+    const supabase = await createClient();
+    const { companyId } = await getAuthContext(supabase);
+    
+    if (!companyId) return { error: "Missing Company ID for user" };
 
-  const table = itemType === 'Product' ? 'products' : 'materials';
+    const itemId = formData.get('item_id') as string;
+    const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
+    const newQty = parseFloat(formData.get('quantity') as string) || 0;
 
-  const { error } = await supabase
-    .from(table)
-    .update({ quantity_on_hand: newQty })
-    .eq('id', itemId)
-    .eq('company_id', companyId); // Extra safety check
+    const table = itemType === 'Product' ? 'products' : 'materials';
 
-  if (error) throw new Error(error.message);
+    const { error } = await supabase
+      .from(table)
+      .update({ quantity_on_hand: newQty })
+      .eq('id', itemId)
+      .eq('company_id', companyId); // Extra safety check
 
-  revalidatePath('/inventory');
+    if (error) return { error: error.message };
+
+    revalidatePath('/inventory');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
 }
 
 export async function deleteItem(formData: FormData) {
-  const supabase = await createClient();
-  const { companyId } = await getAuthContext(supabase);
-  
-  const itemId = formData.get('item_id') as string;
-  const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
+  try {
+    const supabase = await createClient();
+    const { companyId } = await getAuthContext(supabase);
+    
+    if (!companyId) return { error: "Missing Company ID for user" };
 
-  const table = itemType === 'Product' ? 'products' : 'materials';
+    const itemId = formData.get('item_id') as string;
+    const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
 
-  const { error } = await supabase
-    .from(table)
-    .delete()
-    .eq('id', itemId)
-    .eq('company_id', companyId); // Extra safety check
+    const table = itemType === 'Product' ? 'products' : 'materials';
 
-  if (error) {
-    if (error.message.includes('foreign key constraint')) {
-      throw new Error(`Cannot delete this ${itemType} because it is currently being used in active recipes, orders, or bills of material.`);
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', itemId)
+      .eq('company_id', companyId); // Extra safety check
+
+    if (error) {
+      if (error.message.includes('foreign key constraint')) {
+        return { error: `Cannot delete this ${itemType} because it is currently being used in active recipes, orders, or bills of material.` };
+      }
+      return { error: error.message };
     }
-    throw new Error(error.message);
-  }
 
-  revalidatePath('/inventory');
+    revalidatePath('/inventory');
+    return { success: true };
+  } catch (err: any) {
+    return { error: err.message };
+  }
 }

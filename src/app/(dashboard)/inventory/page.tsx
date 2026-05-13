@@ -154,12 +154,18 @@ export default function InventoryDashboard() {
     try {
       formData.append('item_id', selectedItem.id);
       formData.append('item_type', itemType);
-      await updateItemQuantity(formData);
+      const res = await updateItemQuantity(formData);
+      
+      if (res?.error) {
+        alert(`Error updating quantity: ${res.error}`);
+        return;
+      }
+
       setSelectedItem({ ...selectedItem, quantity_on_hand: Number(formData.get('quantity')) });
       setIsEditingQty(false);
       fetchData();
     } catch (err: any) {
-      alert(`Error updating quantity: ${err.message}`);
+      alert(`System Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -173,11 +179,17 @@ export default function InventoryDashboard() {
       const fd = new FormData();
       fd.append('item_id', selectedItem.id);
       fd.append('item_type', itemType);
-      await deleteItem(fd);
+      const res = await deleteItem(fd);
+      
+      if (res?.error) {
+        alert(`Error deleting item: ${res.error}`);
+        return;
+      }
+
       setSelectedItem(null);
       fetchData();
     } catch (err: any) {
-      alert(`Error deleting item: ${err.message}`);
+      alert(`System Error: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
