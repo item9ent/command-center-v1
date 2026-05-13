@@ -13,21 +13,20 @@ export default function ProductLabelPrintPage({ params }: { params: { id: string
   }, []);
 
   return (
-    <div className="bg-white min-h-screen text-black">
+    <div className="bg-white min-h-screen text-black flex justify-center items-start pt-16">
       {/* 
         This style block forces the browser's PDF engine to perfectly match
-        the 4.25" width x 6" length of the iColor 250. 
-        We use 4in x 6in as a safe standard that fits within the printable area.
+        the 4" width x 2" height for Product Labels.
       */}
       <style dangerouslySetInnerHTML={{__html: `
         @page {
-          size: 4in 6in;
+          size: 4in 2in;
           margin: 0;
         }
         @media print {
           html, body {
             width: 4in;
-            height: 6in;
+            height: 2in;
             margin: 0;
             padding: 0;
             overflow: hidden;
@@ -42,8 +41,8 @@ export default function ProductLabelPrintPage({ params }: { params: { id: string
       {/* Development Preview Helper */}
       <div className="no-print bg-zinc-900 text-white p-4 flex justify-between items-center fixed top-0 w-full z-50">
         <div>
-          <p className="font-bold">iColor 250 Preview</p>
-          <p className="text-sm text-zinc-400">Dimensions locked to 4" x 6"</p>
+          <p className="font-bold">Product Label Preview</p>
+          <p className="text-sm text-zinc-400">Dimensions locked to 4" x 2"</p>
         </div>
         <button 
           onClick={() => window.print()} 
@@ -53,66 +52,58 @@ export default function ProductLabelPrintPage({ params }: { params: { id: string
         </button>
       </div>
 
-      {/* The Actual 4x6 Label Canvas */}
+      {/* The Actual 4x2 Label Canvas */}
       <div 
-        className="relative bg-white text-black overflow-hidden"
-        style={{ width: '4in', height: '6in', padding: '0.25in', boxSizing: 'border-box', marginTop: '72px' }}
+        className="relative bg-white text-black overflow-hidden flex"
+        style={{ width: '4in', height: '2in', padding: '0.1in', boxSizing: 'border-box' }}
       >
-        <div className="absolute inset-0 border-4 border-black m-2 rounded-xl pointer-events-none"></div>
+        {/* Left Side: Product Details */}
+        <div className="flex-1 flex flex-col justify-between pr-2">
+          
+          {/* Header */}
+          <div className="border-b border-black pb-0.5 mb-1">
+            <h1 className="text-lg font-black uppercase tracking-tighter leading-none">Premium Isolate</h1>
+            <p className="text-[10px] font-bold font-mono">SKU: ISO-99-ORG</p>
+          </div>
 
-        {/* Header */}
-        <div className="mt-4 border-b-2 border-black pb-2 text-center">
-          <h1 className="text-3xl font-black uppercase tracking-tighter">Premium Isolate</h1>
-          <p className="text-lg font-bold font-mono">SKU: ISO-99-ORG</p>
-        </div>
-
-        {/* Data Grid */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="space-y-4">
+          {/* Data Grid */}
+          <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1">
             <div>
-              <p className="text-xs font-bold uppercase text-gray-500 mb-1 flex items-center gap-1">
-                <Beaker className="w-3 h-3"/> Batch No.
-              </p>
-              <p className="font-mono text-xl font-bold">B-2026-0042</p>
+              <p className="text-[8px] font-bold uppercase text-gray-500 leading-none">Batch No.</p>
+              <p className="font-mono text-[10px] font-bold leading-tight">B-2026-0042</p>
             </div>
-            
             <div>
-              <p className="text-xs font-bold uppercase text-gray-500 mb-1 flex items-center gap-1">
-                <Calendar className="w-3 h-3"/> Expiration
-              </p>
-              <p className="font-mono text-xl font-bold">12/2027</p>
+              <p className="text-[8px] font-bold uppercase text-gray-500 leading-none">Expiration</p>
+              <p className="font-mono text-[10px] font-bold leading-tight">12/2027</p>
             </div>
-
-            <div>
-              <p className="text-xs font-bold uppercase text-gray-500 mb-1">Net Weight</p>
-              <p className="font-mono text-2xl font-black">1.0 KG</p>
+            <div className="col-span-2">
+              <p className="text-[8px] font-bold uppercase text-gray-500 leading-none">Net Weight</p>
+              <p className="font-mono text-sm font-black leading-tight">1.0 KG</p>
             </div>
           </div>
 
-          <div className="flex flex-col items-center justify-center border-l-2 border-black pl-4">
-            {/* Mock QR Code linking to COA */}
-            <div className="w-24 h-24 bg-black flex items-center justify-center rounded">
-              <QrCode className="w-16 h-16 text-white" />
-            </div>
-            <p className="text-xs font-bold mt-2 text-center uppercase">Scan for COA</p>
-          </div>
-        </div>
-
-        {/* Warnings / Footer */}
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="flex items-start gap-2 bg-black text-white p-2 rounded">
-            <ShieldAlert className="w-5 h-5 flex-shrink-0" />
-            <p className="text-[10px] leading-tight font-medium">
+          {/* Warnings / Footer */}
+          <div className="mt-auto">
+            <p className="text-[6px] leading-tight font-medium text-justify">
               Keep out of reach of children. Store in a cool, dry place away from direct sunlight. 
               Manufactured in a facility that processes hemp derivatives.
             </p>
+            <div className="text-[6px] font-bold tracking-widest uppercase mt-0.5">
+              ENHAZED OS • COMMAND CENTER LABS
+            </div>
           </div>
-          <div className="text-center mt-2 text-[9px] font-bold tracking-widest uppercase">
-            ENHAZED OS • COMMAND CENTER LABS
-          </div>
-        </div>
-      </div>
 
+        </div>
+
+        {/* Right Side: QR Code (COA) */}
+        <div className="w-[1in] border-l-2 border-black pl-2 flex flex-col items-center justify-center shrink-0">
+          <div className="w-[0.8in] h-[0.8in] bg-black flex items-center justify-center rounded">
+            <QrCode className="w-[0.6in] h-[0.6in] text-white" />
+          </div>
+          <p className="text-[8px] font-bold mt-1 text-center uppercase leading-tight">Scan for<br/>COA</p>
+        </div>
+
+      </div>
     </div>
   );
 }
