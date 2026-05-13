@@ -1,0 +1,19 @@
+-- Add Contact Info to Core Entities
+
+-- Customers
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS preferred_contact_method VARCHAR(50);
+
+-- Vendors
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS shipping_address TEXT;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS billing_address TEXT;
+ALTER TABLE vendors ADD COLUMN IF NOT EXISTS preferred_contact_method VARCHAR(50);
+
+-- Employees
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS phone VARCHAR(50);
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE employees ADD COLUMN IF NOT EXISTS preferred_contact_method VARCHAR(50);
