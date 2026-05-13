@@ -2,6 +2,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { PDFDocument, degrees } from 'pdf-lib';
 
 const SHIPSTATION_API_URL = 'https://ssapi.shipstation.com';
 
@@ -224,12 +225,32 @@ export async function generateShippingLabel(
 
     const result = await response.json();
     
+    let finalLabelData = result.labelData;
+    
+    // Automatically rotate the label 90 degrees so it prints 4x6 instead of 6x4
+    try {
+      if (finalLabelData) {
+        const pdfBytes = Buffer.from(finalLabelData, 'base64');
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pages = pdfDoc.getPages();
+        pages.forEach((page) => {
+          const currentRotation = page.getRotation().angle;
+          page.setRotation(degrees(currentRotation + 90));
+        });
+        const modifiedPdfBytes = await pdfDoc.save();
+        finalLabelData = Buffer.from(modifiedPdfBytes).toString('base64');
+      }
+    } catch (rotationError) {
+      console.error("Failed to rotate PDF label:", rotationError);
+      // Fallback to unrotated if error
+    }
+    
     // 4. Update the shipping record in Supabase to 'Shipped'
-    await supabase.from('shipping_records')
+    const { error: updateError } = await supabase.from('shipping_records')
       .update({ 
         status: 'Label Generated', 
         tracking_number: result.trackingNumber,
-        label_data: result.labelData // base64 pdf
+        label_data: finalLabelData // base64 pdf
       })
       .eq('sales_order_id', salesOrderId);
       
@@ -241,7 +262,7 @@ export async function generateShippingLabel(
     return { 
       success: true, 
       trackingNumber: result.trackingNumber, 
-      labelData: result.labelData // Base64 PDF String
+      labelData: finalLabelData // Base64 PDF String
     };
 
   } catch (error: any) {
