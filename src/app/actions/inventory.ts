@@ -4,20 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 
-async function getSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
+import { createClient } from '@/lib/supabase/server';
 
 // Ensure the user's company ID is automatically injected
 async function getAuthContext(supabase: any) {
@@ -34,7 +21,7 @@ async function getAuthContext(supabase: any) {
 }
 
 export async function createPurchaseOrder(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const { companyId, userId } = await getAuthContext(supabase);
   
   const vendorId = formData.get('vendor_id') as string;
@@ -71,7 +58,7 @@ export async function createPurchaseOrder(formData: FormData) {
 }
 
 export async function receivePurchaseOrder(formData: FormData) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const poId = formData.get('po_id') as string;
   
   // 1. Mark PO as Received
@@ -96,6 +83,52 @@ export async function receivePurchaseOrder(formData: FormData) {
           .eq('id', item.material_id);
       }
     }
+  }
+
+  revalidatePath('/inventory');
+}
+
+export async function updateItemQuantity(formData: FormData) {
+  const supabase = await createClient();
+  const { companyId } = await getAuthContext(supabase);
+  
+  const itemId = formData.get('item_id') as string;
+  const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
+  const newQty = parseFloat(formData.get('quantity') as string) || 0;
+
+  const table = itemType === 'Product' ? 'products' : 'materials';
+
+  const { error } = await supabase
+    .from(table)
+    .update({ quantity_on_hand: newQty })
+    .eq('id', itemId)
+    .eq('company_id', companyId); // Extra safety check
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/inventory');
+}
+
+export async function deleteItem(formData: FormData) {
+  const supabase = await createClient();
+  const { companyId } = await getAuthContext(supabase);
+  
+  const itemId = formData.get('item_id') as string;
+  const itemType = formData.get('item_type') as string; // 'Product' or 'Material'
+
+  const table = itemType === 'Product' ? 'products' : 'materials';
+
+  const { error } = await supabase
+    .from(table)
+    .delete()
+    .eq('id', itemId)
+    .eq('company_id', companyId); // Extra safety check
+
+  if (error) {
+    if (error.message.includes('foreign key constraint')) {
+      throw new Error(`Cannot delete this ${itemType} because it is currently being used in active recipes, orders, or bills of material.`);
+    }
+    throw new Error(error.message);
   }
 
   revalidatePath('/inventory');

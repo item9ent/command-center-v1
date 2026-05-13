@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check, Printer, FileText, Upload, Download } from "lucide-react";
-import { createPurchaseOrder, receivePurchaseOrder } from '@/app/actions/inventory';
+import { Box, ShoppingCart, AlertTriangle, Plus, Search, X, Check, Printer, FileText, Upload, Download, Trash2, Edit2 } from "lucide-react";
+import { createPurchaseOrder, receivePurchaseOrder, updateItemQuantity, deleteItem } from '@/app/actions/inventory';
 
 export default function InventoryDashboard() {
   const [products, setProducts] = useState<any[]>([]);
@@ -23,6 +23,7 @@ export default function InventoryDashboard() {
   const [itemType, setItemType] = useState<'Product' | 'Material'>('Product');
   const [itemDocs, setItemDocs] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditingQty, setIsEditingQty] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,6 +80,7 @@ export default function InventoryDashboard() {
     setSelectedItem(item);
     setItemType(type);
     setItemDocs([]);
+    setIsEditingQty(false);
     
     // Fetch related documents
     const { data: links } = await supabase
@@ -144,6 +146,40 @@ export default function InventoryDashboard() {
       setIsUploading(false);
       // reset file input
       e.target.value = '';
+    }
+  };
+
+  const handleUpdateQty = async (formData: FormData) => {
+    setIsSubmitting(true);
+    try {
+      formData.append('item_id', selectedItem.id);
+      formData.append('item_type', itemType);
+      await updateItemQuantity(formData);
+      setSelectedItem({ ...selectedItem, quantity_on_hand: Number(formData.get('quantity')) });
+      setIsEditingQty(false);
+      fetchData();
+    } catch (err: any) {
+      alert(`Error updating quantity: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!window.confirm(`Are you sure you want to delete this ${itemType}? This cannot be undone.`)) return;
+    
+    setIsSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append('item_id', selectedItem.id);
+      fd.append('item_type', itemType);
+      await deleteItem(fd);
+      setSelectedItem(null);
+      fetchData();
+    } catch (err: any) {
+      alert(`Error deleting item: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -365,9 +401,31 @@ export default function InventoryDashboard() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-border-color">
-                <p className="text-sm text-subtle">Quantity on Hand</p>
-                <p className="text-xl font-bold">{selectedItem.quantity_on_hand || 0} {selectedItem.unit_of_measure}</p>
+              <div className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-border-color flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-subtle">Quantity on Hand</p>
+                  {isEditingQty ? (
+                    <form action={handleUpdateQty} className="flex gap-2 mt-1">
+                      <input 
+                        type="number" 
+                        name="quantity" 
+                        step="0.01"
+                        defaultValue={selectedItem.quantity_on_hand || 0} 
+                        className="w-24 bg-background border border-border-color rounded px-2 py-1 text-sm"
+                        autoFocus
+                      />
+                      <button type="submit" disabled={isSubmitting} className="btn bg-green-600 hover:bg-green-500 text-white px-3 py-1 text-sm">Save</button>
+                      <button type="button" onClick={() => setIsEditingQty(false)} className="btn btn-secondary px-3 py-1 text-sm border-border-color">Cancel</button>
+                    </form>
+                  ) : (
+                    <p className="text-xl font-bold">{selectedItem.quantity_on_hand || 0} {selectedItem.unit_of_measure}</p>
+                  )}
+                </div>
+                {!isEditingQty && (
+                  <button onClick={() => setIsEditingQty(true)} className="p-2 text-subtle hover:text-primary hover:bg-black/5 dark:hover:bg-white/5 rounded-md transition-colors">
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
               <div className="p-4 rounded-lg bg-black/5 dark:bg-white/5 border border-border-color">
                 <p className="text-sm text-subtle">Status</p>
@@ -437,6 +495,17 @@ export default function InventoryDashboard() {
                 </a>
               </div>
             )}
+
+            <div className="mt-8 pt-6 border-t border-border-color flex justify-end">
+              <button 
+                onClick={handleDeleteItem}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+              >
+                <Trash2 className="w-4 h-4" />
+                {isSubmitting ? 'Deleting...' : `Delete ${itemType}`}
+              </button>
+            </div>
           </div>
         </div>
       )}
