@@ -29,7 +29,7 @@ export function Sidebar() {
   ];
 
   return (
-    <div className="app-sidebar">
+    <div className="flex flex-col h-full w-full">
       <div className="p-6">
         <h1 className="font-semibold text-lg tracking-tight text-primary">ENHAZED OS</h1>
         <p className="text-xs text-subtle mt-1">Command Center</p>
