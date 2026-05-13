@@ -246,9 +246,9 @@ export default function FulfillmentDashboard() {
                   onChange={e => setCarrier(e.target.value)} 
                   className="w-full bg-background border border-border-color rounded-lg px-3 py-2 text-sm"
                 >
-                  <option value="stamps_com">USPS (via Stamps.com)</option>
-                  <option value="ups">UPS</option>
-                  <option value="fedex">FedEx</option>
+                  <option value="stamps_com">USPS</option>
+                  <option value="fedex_walleted">FedEx</option>
+                  <option value="dhl_express_worldwide">DHL Express</option>
                 </select>
               </div>
 
@@ -266,16 +266,15 @@ export default function FulfillmentDashboard() {
                       <option value="usps_first_class_mail">USPS First Class Mail</option>
                     </>
                   )}
-                  {carrier === 'ups' && (
-                    <>
-                      <option value="ups_ground">UPS Ground</option>
-                      <option value="ups_next_day_air">UPS Next Day Air</option>
-                    </>
-                  )}
-                  {carrier === 'fedex' && (
+                  {carrier === 'fedex_walleted' && (
                     <>
                       <option value="fedex_ground">FedEx Ground</option>
                       <option value="fedex_2day">FedEx 2Day</option>
+                    </>
+                  )}
+                  {carrier === 'dhl_express_worldwide' && (
+                    <>
+                      <option value="dhl_express_worldwide">DHL Express Worldwide</option>
                     </>
                   )}
                 </select>

@@ -109,11 +109,14 @@ export async function createShipStationOrder(salesOrderId: string) {
     const result = await response.json();
 
     // 4. Record in Supabase shipping_records
-    await supabase.from('shipping_records').insert({
+    const { error: insertError } = await supabase.from('shipping_records').insert({
+      company_id: order.company_id,
       sales_order_id: salesOrderId,
       shipstation_order_id: result.orderId.toString(),
       status: 'Pending'
     });
+    
+    if (insertError) console.error("Failed to insert shipping_record:", insertError);
 
     return { success: true, shipStationOrderId: result.orderId };
 
@@ -208,7 +211,15 @@ export async function generateShippingLabel(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ShipStation Label Error:', errorText);
-      throw new Error(`Failed to purchase label: ${response.statusText}`);
+      
+      // Try to parse JSON error if possible
+      let friendlyError = response.statusText;
+      try {
+        const errObj = JSON.parse(errorText);
+        friendlyError = errObj.ExceptionMessage || errObj.Message || friendlyError;
+      } catch (e) {}
+
+      throw new Error(`ShipStation Error: ${friendlyError}`);
     }
 
     const result = await response.json();
