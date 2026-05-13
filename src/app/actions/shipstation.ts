@@ -139,3 +139,102 @@ export async function getCarriers() {
     return [];
   }
 }
+
+/**
+ * Purchases postage and generates a shipping label PDF for an order
+ */
+export async function generateShippingLabel(
+  salesOrderId: string, 
+  carrierCode: string, 
+  serviceCode: string, 
+  weightValue: number,
+  weightUnit: 'ounces' | 'grams' | 'pounds' = 'ounces',
+  testLabel: boolean = false
+) {
+  try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+
+    // 1. First, check if a ShipStation order already exists for this Sales Order
+    let shipStationOrderId: number | null = null;
+    const { data: existingRecord } = await supabase
+      .from('shipping_records')
+      .select('*')
+      .eq('sales_order_id', salesOrderId)
+      .single();
+
+    if (existingRecord?.shipstation_order_id) {
+      shipStationOrderId = parseInt(existingRecord.shipstation_order_id);
+    } else {
+      // 2. If it doesn't exist in ShipStation yet, push the order over first
+      const createRes = await createShipStationOrder(salesOrderId);
+      if (!createRes.success || !createRes.shipStationOrderId) {
+        throw new Error(createRes.error || 'Failed to create parent order in ShipStation');
+      }
+      shipStationOrderId = createRes.shipStationOrderId;
+    }
+
+    // 3. Request the Label from ShipStation API
+    const labelPayload = {
+      orderId: shipStationOrderId,
+      carrierCode: carrierCode,
+      serviceCode: serviceCode,
+      packageCode: "package", // Standard package
+      confirmation: "none",
+      shipDate: new Date().toISOString().split('T')[0], // Today
+      weight: {
+        value: weightValue,
+        units: weightUnit
+      },
+      testLabel: testLabel // If true, does not charge billing account
+    };
+
+    const response = await fetch(`${SHIPSTATION_API_URL}/orders/createlabelfororder`, {
+      method: 'POST',
+      headers: getShipStationHeaders(),
+      body: JSON.stringify(labelPayload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('ShipStation Label Error:', errorText);
+      throw new Error(`Failed to purchase label: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    
+    // 4. Update the shipping record in Supabase to 'Shipped'
+    await supabase.from('shipping_records')
+      .update({ 
+        status: 'Label Generated', 
+        tracking_number: result.trackingNumber,
+        label_data: result.labelData // base64 pdf
+      })
+      .eq('sales_order_id', salesOrderId);
+      
+    // Also update Sales Order status
+    await supabase.from('sales_orders')
+      .update({ status: 'Shipped' })
+      .eq('id', salesOrderId);
+
+    return { 
+      success: true, 
+      trackingNumber: result.trackingNumber, 
+      labelData: result.labelData // Base64 PDF String
+    };
+
+  } catch (error: any) {
+    console.error('ShipStation Label Generation Error:', error);
+    return { success: false, error: error.message };
+  }
+}
