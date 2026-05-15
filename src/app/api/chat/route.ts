@@ -67,11 +67,11 @@ Always be concise, professional, and highly intelligent.`,
       },
     });
 
-    const allToolCalls = result.steps?.flatMap(step => step.toolCalls) || result.toolCalls || [];
+    const allToolResults = result.steps?.flatMap(step => step.toolResults) || result.toolResults || [];
 
     return Response.json({ 
       text: result.text, 
-      toolCalls: allToolCalls 
+      toolCalls: allToolResults 
     });
   } catch (error: any) {
     console.error('AI Route Error:', error);
