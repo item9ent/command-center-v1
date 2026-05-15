@@ -2,10 +2,11 @@
 
 import { useChat } from '@ai-sdk/react';
 import { Send, Sparkles, User, Loader2, Bot, Wrench } from 'lucide-react';
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 export function AIChat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const [inputValue, setInputValue] = useState("");
+  const { messages, append, isLoading, error } = useChat({
     api: '/api/chat',
     maxSteps: 5,
   });
@@ -112,17 +113,22 @@ export function AIChat() {
 
       {/* Input Area */}
       <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-border-color">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!inputValue.trim() || isLoading) return;
+          append({ role: 'user', content: inputValue });
+          setInputValue("");
+        }} className="flex gap-2">
           <input
             className="flex-1 bg-transparent border border-border-color rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-color focus:border-transparent"
-            value={input || ""}
+            value={inputValue}
             placeholder="Ask the AI something..."
-            onChange={handleInputChange}
+            onChange={(e) => setInputValue(e.target.value)}
             disabled={isLoading}
           />
           <button 
             type="submit" 
-            disabled={isLoading || !(input || "").trim()}
+            disabled={isLoading || !inputValue.trim()}
             className="w-10 h-10 rounded-full bg-accent-color text-white flex items-center justify-center hover:bg-accent-color/90 transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4 -ml-0.5" />
