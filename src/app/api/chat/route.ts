@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     );
 
     const result = await generateText({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-1.5-flash'),
       system: `You are 'ENHAZED AI', the AI Business Assistant for this company. 
 You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.
@@ -75,7 +75,8 @@ Always be concise, professional, and highly intelligent.`,
 
     const allToolResults = result.steps?.flatMap(step => step.toolResults) || result.toolResults || [];
 
-    const finalOutput = result.text || `[DEBUG: finishReason=${result.finishReason}, toolCallsLength=${allToolResults.length}]`;
+    const dbgReason = typeof result.finishReason === 'object' ? JSON.stringify(result.finishReason) : result.finishReason;
+    const finalOutput = result.text || `[DEBUG: finishReason=${dbgReason}, toolCallsLength=${allToolResults.length}]`;
 
     return Response.json({ 
       text: finalOutput, 
