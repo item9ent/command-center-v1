@@ -29,8 +29,8 @@ export async function POST(req: Request) {
       }
     );
 
-    const result = await generateText({
-      model: google('gemini-1.5-pro'),
+    const result = streamText({
+      model: google('gemini-2.5-flash'),
       system: `You are 'ENHAZED AI', the AI Business Assistant for this company. 
 You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.
@@ -41,8 +41,7 @@ Always be concise, professional, and highly intelligent.`,
         getBusinessMetrics: tool({
           description: 'Get the total sales and purchase volume for the business.',
           parameters: z.object({ trigger: z.boolean().optional() }),
-          // @ts-expect-error - AI SDK Tool Typing Bug
-          execute: async (_args: { trigger?: boolean }) => {
+          execute: async (_args) => {
             const [salesRes, purchasesRes] = await Promise.all([
               supabase.from('sales_orders').select('total_amount'),
               supabase.from('purchase_orders').select('total_amount')
@@ -55,8 +54,7 @@ Always be concise, professional, and highly intelligent.`,
         getInventoryStatus: tool({
           description: 'Get the current quantity on hand for all inventory items.',
           parameters: z.object({ trigger: z.boolean().optional() }),
-          // @ts-expect-error - AI SDK Tool Typing Bug
-          execute: async (_args: { trigger?: boolean }) => {
+          execute: async (_args) => {
             const { data } = await supabase.from('inventory_items').select('*, products(name), materials(name)');
             return data || [];
           },
@@ -64,8 +62,7 @@ Always be concise, professional, and highly intelligent.`,
         getPendingApprovals: tool({
           description: 'Get the list of pending approval requests in the system.',
           parameters: z.object({ trigger: z.boolean().optional() }),
-          // @ts-expect-error - AI SDK Tool Typing Bug
-          execute: async (_args: { trigger?: boolean }) => {
+          execute: async (_args) => {
             const { data } = await supabase.from('approval_requests').select('*').eq('status', 'Pending');
             return data || [];
           },
@@ -73,15 +70,7 @@ Always be concise, professional, and highly intelligent.`,
       },
     });
 
-    const allToolResults = result.steps?.flatMap(step => step.toolResults) || result.toolResults || [];
-
-    const dbgReason = typeof result.finishReason === 'object' ? JSON.stringify(result.finishReason) : result.finishReason;
-    const finalOutput = result.text || `[DEBUG: finishReason=${dbgReason}, toolCallsLength=${allToolResults.length}]`;
-
-    return Response.json({ 
-      text: finalOutput, 
-      toolCalls: allToolResults 
-    });
+    return result.toDataStreamResponse();
   } catch (error: any) {
     console.error('AI Route Error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Failed to process AI request' }), {

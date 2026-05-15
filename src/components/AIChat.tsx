@@ -2,13 +2,13 @@
 
 import { useChat } from '@ai-sdk/react';
 import { Send, Sparkles, User, Loader2, Bot, Wrench } from 'lucide-react';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 
 export function AIChat() {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<any>(null);
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: '/api/chat',
+    maxSteps: 5,
+  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -112,47 +112,17 @@ export function AIChat() {
 
       {/* Input Area */}
       <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-border-color">
-        <form onSubmit={async (e) => {
-          e.preventDefault();
-          if (!inputValue.trim() || isLoading) return;
-          
-          const userMsg = { id: Date.now().toString(), role: 'user', content: inputValue };
-          setMessages(prev => [...prev, userMsg]);
-          setInputValue("");
-          setIsLoading(true);
-          setError(null);
-          
-          try {
-            const res = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ messages: [...messages, userMsg] })
-            });
-            const data = await res.json();
-            if (!res.ok || data.error) throw new Error(data.error || 'Failed to get response');
-            
-            setMessages(prev => [...prev, { 
-              id: (Date.now()+1).toString(), 
-              role: 'assistant', 
-              content: data.text, 
-              toolInvocations: data.toolCalls 
-            }]);
-          } catch(err: any) {
-            setError(err);
-          } finally {
-            setIsLoading(false);
-          }
-        }} className="flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             className="flex-1 bg-transparent border border-border-color rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-color focus:border-transparent"
-            value={inputValue}
+            value={input}
             placeholder="Ask the AI something..."
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={handleInputChange}
             disabled={isLoading}
           />
           <button 
             type="submit" 
-            disabled={isLoading || !inputValue.trim()}
+            disabled={isLoading || !input.trim()}
             className="w-10 h-10 rounded-full bg-accent-color text-white flex items-center justify-center hover:bg-accent-color/90 transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4 -ml-0.5" />
