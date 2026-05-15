@@ -9,6 +9,12 @@ export const runtime = 'edge';
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
+    
+    // Sanitize messages to remove non-standard properties that crash the SDK
+    const sanitizedMessages = messages.map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -29,7 +35,7 @@ export async function POST(req: Request) {
 You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.
 Always be concise, professional, and highly intelligent.`,
-      messages,
+      messages: sanitizedMessages,
       maxSteps: 5,
       tools: {
         getBusinessMetrics: tool({
@@ -69,8 +75,10 @@ Always be concise, professional, and highly intelligent.`,
 
     const allToolResults = result.steps?.flatMap(step => step.toolResults) || result.toolResults || [];
 
+    const finalOutput = result.text || `[DEBUG: finishReason=${result.finishReason}, toolCallsLength=${allToolResults.length}]`;
+
     return Response.json({ 
-      text: result.text, 
+      text: finalOutput, 
       toolCalls: allToolResults 
     });
   } catch (error: any) {
