@@ -115,14 +115,14 @@ export function AIChat() {
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             className="flex-1 bg-transparent border border-border-color rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-color focus:border-transparent"
-            value={input}
+            value={input || ""}
             placeholder="Ask the AI something..."
             onChange={handleInputChange}
             disabled={isLoading}
           />
           <button 
             type="submit" 
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !(input || "").trim()}
             className="w-10 h-10 rounded-full bg-accent-color text-white flex items-center justify-center hover:bg-accent-color/90 transition-colors disabled:opacity-50"
           >
             <Send className="w-4 h-4 -ml-0.5" />
