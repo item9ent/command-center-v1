@@ -1,4 +1,4 @@
-import { streamText, tool } from 'ai';
+import { generateText, tool } from 'ai';
 import { google } from '@ai-sdk/google';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
@@ -23,13 +23,14 @@ export async function POST(req: Request) {
       }
     );
 
-    const result = streamText({
+    const result = await generateText({
       model: google('gemini-2.5-flash'),
       system: `You are 'ENHAZED AI', the AI Business Assistant for this company. 
 You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.
 Always be concise, professional, and highly intelligent.`,
       messages,
+      maxSteps: 5,
       tools: {
         getBusinessMetrics: tool({
           description: 'Get the total sales and purchase volume for the business.',
@@ -66,7 +67,12 @@ Always be concise, professional, and highly intelligent.`,
       },
     });
 
-    return result.toDataStreamResponse();
+    const allToolCalls = result.steps?.flatMap(step => step.toolCalls) || result.toolCalls || [];
+
+    return Response.json({ 
+      text: result.text, 
+      toolCalls: allToolCalls 
+    });
   } catch (error: any) {
     console.error('AI Route Error:', error);
     return new Response(JSON.stringify({ error: error.message || 'Failed to process AI request' }), {
