@@ -5,7 +5,7 @@ import { Send, Sparkles, User, Loader2, Bot, Wrench } from 'lucide-react';
 import { useRef, useEffect } from 'react';
 
 export function AIChat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  const { messages, input, setInput, handleSubmit, isLoading, error } = useChat({
     api: '/api/chat',
     maxSteps: 5,
   });
@@ -117,7 +117,7 @@ export function AIChat() {
             className="flex-1 bg-transparent border border-border-color rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-color focus:border-transparent"
             value={input || ""}
             placeholder="Ask the AI something..."
-            onChange={handleInputChange}
+            onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
           />
           <button 
