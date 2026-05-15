@@ -51,7 +51,7 @@ export default async function CommandCenter() {
       {/* Header section */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary">Command Center</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-text-primary">ENHAZED OS</h1>
           <p className="text-subtle mt-1">Here is what's happening today.</p>
         </div>
         <div className="flex gap-3">

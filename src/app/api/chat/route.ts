@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: google('gemini-2.5-pro'),
       system: `You are 'ENHAZED AI', the AI Business Assistant for this company. 
-You exist within the Business Command Center. Your goal is to help the executive team 
+You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.
 Always be concise, professional, and highly intelligent.`,
       messages,
@@ -66,7 +66,7 @@ Always be concise, professional, and highly intelligent.`,
       },
     });
 
-    return result.toTextStreamResponse();
+    return result.toDataStreamResponse();
   } catch (error) {
     console.error('AI Route Error:', error);
     return new Response(JSON.stringify({ error: 'Failed to process AI request' }), {

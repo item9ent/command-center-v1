@@ -14,7 +14,7 @@ import {
 
 export function Sidebar() {
   const navigation = [
-    { name: "Command Center", href: "/", icon: LayoutDashboard },
+    { name: "Home", href: "/", icon: LayoutDashboard },
     { name: "Reports", href: "/reports", icon: BarChart3 },
     { name: "Sales & Customers", href: "/sales", icon: Users },
     { name: "Orders & Quotes", href: "/orders", icon: ShoppingCart },
@@ -34,7 +34,7 @@ export function Sidebar() {
     <div className="flex flex-col h-full w-full">
       <div className="p-6">
         <h1 className="font-semibold text-lg tracking-tight text-primary">ENHAZED OS</h1>
-        <p className="text-xs text-subtle mt-1">Command Center</p>
+        <p className="text-xs text-subtle mt-1">Operating System</p>
       </div>
       
       <nav className="flex-1 px-4 space-y-1 overflow-y-auto">

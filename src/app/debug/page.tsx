@@ -30,7 +30,7 @@ export default async function DebugPage() {
 
   return (
     <div className="p-8 font-mono text-xs max-w-4xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold border-b pb-2">Command Center Database Debugger</h1>
+      <h1 className="text-2xl font-bold border-b pb-2">ENHAZED OS Database Debugger</h1>
       
       <div className="bg-red-500/10 border border-red-500 p-4 rounded-lg">
         <h2 className="font-bold text-red-500">1. Authentication Status</h2>

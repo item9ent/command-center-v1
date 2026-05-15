@@ -29,7 +29,7 @@ export default function SettingsDashboard() {
             <Settings className="w-8 h-8 text-accent-color" />
             Master Data & Settings
           </h1>
-          <p className="text-subtle mt-1">Foundational data entry for your command center</p>
+          <p className="text-subtle mt-1">Foundational data entry for ENHAZED OS</p>
         </div>
       </div>
 
@@ -290,10 +290,10 @@ export default function SettingsDashboard() {
                   </div>
                 </div>
                 
-                {/* Command Center Access Section */}
+                {/* ENHAZED OS Access Section */}
                 <div className="bg-accent-color/5 border border-accent-color/20 rounded-lg p-4 space-y-4">
                   <h4 className="text-sm font-semibold text-accent-color flex items-center gap-2">
-                    Command Center Login (Optional)
+                    ENHAZED OS Login (Optional)
                   </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
