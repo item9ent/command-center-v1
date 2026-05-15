@@ -6,8 +6,7 @@ import { useRef, useEffect, useState } from 'react';
 
 export function AIChat() {
   const { messages, append, isLoading, error } = useChat({
-    api: '/api/chat',
-    maxSteps: 5,
+    api: '/api/chat'
   } as any) as any;
   
   const [inputValue, setInputValue] = useState("");
@@ -114,11 +113,15 @@ export function AIChat() {
 
       {/* Input Area */}
       <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-border-color">
-        <form onSubmit={(e) => {
+        <form onSubmit={async (e) => {
           e.preventDefault();
-          if (!inputValue.trim() || isLoading) return;
-          append({ role: 'user', content: inputValue });
-          setInputValue("");
+          try {
+            if (!inputValue.trim() || isLoading) return;
+            await append({ role: 'user', content: inputValue });
+            setInputValue("");
+          } catch (err: any) {
+            alert("Client Error: " + err.message);
+          }
         }} className="flex gap-2">
           <input
             className="flex-1 bg-transparent border border-border-color rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent-color focus:border-transparent"
