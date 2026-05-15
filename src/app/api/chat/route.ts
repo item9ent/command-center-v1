@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     );
 
     const result = await generateText({
-      model: google('gemini-pro'),
+      model: google('gemini-2.5-flash'),
       system: `You are 'ENHAZED AI', the AI Business Assistant for this company. 
 You exist within ENHAZED OS. Your goal is to help the executive team 
 make data-driven decisions, draft documents, analyze risks, and manage their business operations.

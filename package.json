@@ -9,7 +9,7 @@
     "lint": "echo 'Skipping lint'"
   },
   "dependencies": {
-    "@ai-sdk/google": "^3.0.73",
+    "@ai-sdk/google": "latest",
     "@ai-sdk/react": "^3.0.182",
     "@base-ui/react": "^1.4.1",
     "@supabase/ssr": "^0.10.3",
